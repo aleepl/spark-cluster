@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  spark-master:
+    container_name: spark-master
+    image: spark-image
+    entrypoint: ['/opt/entrypoint.sh', 'master']
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - ./scripts:/opt/scripts
+      - ./data:/opt/data
+      - ./logs:/opt/spark/logs
+      - spark-logs:/opt/spark/spark-events
+    ports:
+      - '8090:8080'
+
+  spark-history-server:
+    container_name: spark-history
+    image: spark-image
+    entrypoint: ['/opt/entrypoint.sh', 'history']
+    depends_on:
+      - spark-master
+    volumes:
+      - spark-logs:/opt/spark/spark-events
+    ports:
+      - '18080:18080'
+
+  spark-worker:
+    image: spark-image
+    entrypoint: ['/opt/entrypoint.sh', 'worker']
+    depends_on:
+      - spark-master
+    volumes:
+      - ./scripts:/opt/scripts
+      - ./data:/opt/data
+      - spark-logs:/opt/spark/spark-events
+
+volumes:
+  spark-logs:
